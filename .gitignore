@@ -1,0 +1,39 @@
+/src/generated/prisma
+
+# Node dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript build outputs
+dist/
+build/
+
+# Prisma generated client (optional—remove if you check it in)
+prisma/client/
+
+# SQLite (if you use it locally for dev)
+*.db
+*.sqlite
+
+# Coverage reports
+coverage/
+
+# IDE/editor directories
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log

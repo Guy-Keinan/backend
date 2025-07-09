@@ -1,0 +1,59 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend for Kids Story App",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "setup-db": "ts-node src/scripts/setup-database.ts",
+    "test:user-service": "ts-node src/scripts/test-user-service.ts",
+    "test:jwt-service": "ts-node src/scripts/test-jwt-service.ts",
+    "test:children-service": "ts-node src/scripts/test-children-service.ts",
+    "test:story-service": "ts-node src/scripts/test-story-service.ts",
+    "test:redis": "ts-node src/scripts/test-redis.ts",
+    "seed:story-templates": "ts-node src/scripts/seed-story-templates.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:reset": "prisma migrate reset",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "kids",
+    "stories",
+    "ai",
+    "personalized"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.16.3",
+    "pg-migrate": "^2.0.1",
+    "redis": "^5.6.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.0.10",
+    "@types/pg": "^8.15.4",
+    "@types/redis": "^4.0.11",
+    "concurrently": "^9.2.0",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.11.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
