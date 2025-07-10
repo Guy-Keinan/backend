@@ -30,4 +30,8 @@ router.get('/', cacheMiddleware(60), StoriesController.getUserStories); // 1 ד�
 router.get('/:id', cacheMiddleware(300), StoriesController.getStoryById); // 5 דקות cache
 router.delete('/:id', StoriesController.deleteStory); // לא cache - זה delete
 
+// נתיבים חדשים לניהול תור הסיפורים
+router.get('/status/:requestId', StoriesController.getStoryGenerationStatus); // בדיקת סטטוס לפי requestId
+router.get('/pending', StoriesController.getPendingStories); // קבלת סיפורים ממתינים
+
 export default router;

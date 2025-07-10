@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import { connectDatabase, disconnectDatabase } from './config/prisma';
 import { connectRedis, disconnectRedis } from './config/redis';
 import routes from './routes';
+import { initializeQueues, closeQueues } from './queues';
+import { startStoryWorker, stopStoryWorker } from './queues/workers/storyWorker';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,9 +78,16 @@ const startServer = async () => {
     // חיבור לRedis
     await connectRedis();
 
+    // אתחול BullMQ queues
+    await initializeQueues();
+
+    // הפעלת Workers
+    startStoryWorker();
+
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📖 Kids Story App API started at http://localhost:${PORT}`);
+      console.log(`🐂 BullMQ workers are running`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -89,15 +98,37 @@ const startServer = async () => {
 // טיפול בסגירת הסרבר
 process.on('SIGINT', async () => {
   console.log('\n🔄 Shutting down server...');
+
+  // עצירת Workers
+  await stopStoryWorker();
+
+  // סגירת Queues
+  await closeQueues();
+
+  // ניתוק מבסיס הנתונים
   await disconnectDatabase();
+
+  // ניתוק מRedis
   await disconnectRedis();
+
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🔄 Shutting down server...');
+
+  // עצירת Workers
+  await stopStoryWorker();
+
+  // סגירת Queues
+  await closeQueues();
+
+  // ניתוק מבסיס הנתונים
   await disconnectDatabase();
+
+  // ניתוק מRedis
   await disconnectRedis();
+
   process.exit(0);
 });
 

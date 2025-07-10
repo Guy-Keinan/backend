@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { StoryService } from '../services/story.service';
 import { StoryTemplateService } from '../services/storyTemplate.service';
+import { v4 as uuidv4 } from 'uuid';
+import { addStoryGenerationJob } from '../queues/storyQueue';
+
 
 /**
  * Stories Controller - מטפל בבקשות הקשורות לסיפורים
@@ -23,7 +26,7 @@ export class StoriesController {
                 return;
             }
 
-            const { templateId, childId } = req.body;
+            const { templateId, childId, priority } = req.body;
 
             // ולידציה בסיסית
             if (!templateId || !childId) {
@@ -46,15 +49,38 @@ export class StoriesController {
                 return;
             }
 
-            const newStory = await StoryService.generateStory(userId, {
+            // יצירת מזהה ייחודי לבקשה
+            const requestId = uuidv4();
+
+            // יצירת רשומת סיפור עם סטטוס pending
+            const pendingStory = await StoryService.createPendingStory(userId, {
                 templateId: parsedTemplateId,
                 childId: parsedChildId
-            });
+            }, requestId);
 
-            res.status(201).json({
+            // הוספת job לתור
+            const job = await addStoryGenerationJob({
+                userId,
+                childId: parsedChildId,
+                templateId: parsedTemplateId,
+                requestId
+            }, priority);
+
+            res.status(202).json({ // 202 Accepted - הבקשה התקבלה ותעובד
                 success: true,
-                message: 'Story generated successfully',
-                data: { story: newStory }
+                message: 'Story generation started',
+                data: {
+                    story: {
+                        id: pendingStory.id,
+                        status: pendingStory.generationStatus,
+                        requestId
+                    },
+                    job: {
+                        id: job.id,
+                        status: await job.getState(),
+                        priority: job.opts.priority
+                    }
+                }
             });
 
         } catch (error) {
@@ -445,6 +471,119 @@ export class StoriesController {
 
         } catch (error) {
             console.error('Get templates meta error:', error);
+
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    static async getStoryGenerationStatus(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.user?.userId;
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const { requestId } = req.params;
+
+            if (!requestId) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Request ID is required'
+                });
+                return;
+            }
+
+            // חיפוש הסיפור לפי requestId
+            const story = await StoryService.getStoryByRequestId(requestId, userId);
+
+            if (!story) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Story not found'
+                });
+                return;
+            }
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    story: {
+                        id: story.id,
+                        title: story.title,
+                        status: story.generationStatus,
+                        content: story.generationStatus === 'completed' ? story.content : undefined,
+                        createdAt: story.createdAt,
+                        updatedAt: story.updatedAt
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Get story status error:', error);
+
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    /**
+     * קבלת סיפורים ממתינים/בעיבוד
+     * GET /stories/pending
+     */
+    static async getPendingStories(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.user?.userId;
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const [pending, processing] = await Promise.all([
+                StoryService.getStoriesByStatus(userId, 'pending'),
+                StoryService.getStoriesByStatus(userId, 'processing')
+            ]);
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    pending: pending.map(s => ({
+                        id: s.id,
+                        title: s.title,
+                        childName: s.child?.name,
+                        templateTitle: s.storyTemplate?.title,
+                        status: s.generationStatus,
+                        createdAt: s.createdAt
+                    })),
+                    processing: processing.map(s => ({
+                        id: s.id,
+                        title: s.title,
+                        childName: s.child?.name,
+                        templateTitle: s.storyTemplate?.title,
+                        status: s.generationStatus,
+                        createdAt: s.createdAt
+                    })),
+                    counts: {
+                        pending: pending.length,
+                        processing: processing.length,
+                        total: pending.length + processing.length
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Get pending stories error:', error);
 
             res.status(500).json({
                 success: false,

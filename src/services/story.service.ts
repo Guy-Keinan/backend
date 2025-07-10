@@ -298,4 +298,132 @@ export class StoryService {
         // אפשר להוסיף לוגיקה מתקדמת יותר לבדוק אילו סיפורים כבר נוצרו
         return recommendedTemplates;
     }
+
+    // הוסף את הפונקציות האלה ל-StoryService class ב-src/services/story.service.ts
+
+    /**
+     * יצירת רשומת סיפור עם סטטוס "pending" לעיבוד בתור
+     */
+    static async createPendingStory(
+        userId: number,
+        generateData: GenerateStoryData,
+        requestId: string
+    ): Promise<Story> {
+        const { templateId, childId } = generateData;
+
+        // בדיקה שהתבנית קיימת
+        const template = await StoryTemplateService.getTemplateById(templateId);
+        if (!template) {
+            throw new Error('Story template not found');
+        }
+
+        // בדיקה שהילד קיים ושייך למשתמש
+        const child = await ChildrenService.getChildById(childId, userId);
+        if (!child) {
+            throw new Error('Child not found or access denied');
+        }
+
+        // יצירת רשומת סיפור עם סטטוס pending
+        const pendingStory = await prisma.story.create({
+            data: {
+                userId,
+                childId,
+                storyTemplateId: templateId,
+                title: `${template.title} - ${child.name}`, // כותרת זמנית
+                content: {
+                    status: 'pending',
+                    requestId,
+                    createdAt: new Date(),
+                    template: {
+                        id: template.id,
+                        title: template.title,
+                        category: template.category
+                    },
+                    child: {
+                        id: child.id,
+                        name: child.name,
+                        gender: child.gender
+                    }
+                },
+                generationStatus: 'pending'
+            },
+            include: {
+                child: true,
+                storyTemplate: true
+            }
+        });
+
+        return pendingStory;
+    }
+
+    /**
+     * קבלת סיפור לפי requestId
+     */
+    static async getStoryByRequestId(requestId: string, userId: number) {
+        const story = await prisma.story.findFirst({
+            where: {
+                userId,
+                content: {
+                    path: ['requestId'],
+                    equals: requestId
+                }
+            },
+            include: {
+                child: true,
+                storyTemplate: true
+            }
+        });
+
+        return story;
+    }
+
+    /**
+     * עדכון סטטוס יצירת סיפור
+     */
+    static async updateStoryGenerationStatus(
+        storyId: number,
+        status: 'pending' | 'processing' | 'completed' | 'failed',
+        additionalData?: any
+    ): Promise<Story> {
+        const currentStory = await prisma.story.findUnique({
+            where: { id: storyId }
+        });
+
+        if (!currentStory) {
+            throw new Error('Story not found');
+        }
+
+        const updatedStory = await prisma.story.update({
+            where: { id: storyId },
+            data: {
+                generationStatus: status,
+                content: {
+                    ...(currentStory.content as any),
+                    ...additionalData,
+                    lastUpdated: new Date()
+                }
+            }
+        });
+
+        return updatedStory;
+    }
+
+    /**
+     * קבלת סיפורים לפי סטטוס
+     */
+    static async getStoriesByStatus(userId: number, status: string) {
+        const stories = await prisma.story.findMany({
+            where: {
+                userId,
+                generationStatus: status
+            },
+            include: {
+                child: true,
+                storyTemplate: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return stories;
+    }
 }
