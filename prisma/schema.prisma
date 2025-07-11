@@ -25,31 +25,31 @@ model User {
   children Child[]
   stories  Story[]
 
-  @@map("users") // שם הטבלה בפועל
   @@index([email]) // אינדקס על email לחיפוש מהיר
+  @@map("users") // שם הטבלה בפועל
 }
 
 // טבלת ילדים - כל משתמש יכול להיות לו כמה ילדים
 model Child {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
-  name        String   @db.VarChar(100)
-  gender      Gender
-  age         Int?
-  hairColor   String?  @map("hair_color") @db.VarChar(50)
-  eyeColor    String?  @map("eye_color") @db.VarChar(50)
-  skinTone    String?  @map("skin_tone") @db.VarChar(50)
-  photoUrl    String?  @map("photo_url")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String   @db.VarChar(100)
+  gender    Gender
+  age       Int?
+  hairColor String?  @map("hair_color") @db.VarChar(50)
+  eyeColor  String?  @map("eye_color") @db.VarChar(50)
+  skinTone  String?  @map("skin_tone") @db.VarChar(50)
+  photoUrl  String?  @map("photo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // קשרים
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories Story[]
 
-  @@map("children")
   @@index([userId]) // אינדקס לחיפוש ילדים של משתמש ספציפי
+  @@map("children")
 }
 
 // enum למין הילד
@@ -63,31 +63,31 @@ enum Gender {
 
 // טבלת תבניות סיפורים
 model StoryTemplate {
-  id            Int      @id @default(autoincrement())
-  title         String   @db.VarChar(200)
-  description   String?  @db.Text
-  category      String   @db.VarChar(100)
-  ageGroup      String   @map("age_group") @db.VarChar(50) // "2-4", "5-7", "8-10"
-  language      String   @default("he") @db.VarChar(10) // "he", "en"
-  
+  id          Int     @id @default(autoincrement())
+  title       String  @db.VarChar(200)
+  description String? @db.Text
+  category    String  @db.VarChar(100)
+  ageGroup    String  @map("age_group") @db.VarChar(50) // "2-4", "5-7", "8-10"
+  language    String  @default("he") @db.VarChar(10) // "he", "en"
+
   // גרסאות הסיפור לפי מגדר
-  maleVersion   String   @map("male_version") @db.Text
-  femaleVersion String   @map("female_version") @db.Text
-  
+  maleVersion   String @map("male_version") @db.Text
+  femaleVersion String @map("female_version") @db.Text
+
   // רשימת placeholders בפורמט JSON
-  placeholders  Json     // ["CHILD_NAME", "AGE", "HAIR_COLOR", ...]
-  
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  placeholders Json // ["CHILD_NAME", "AGE", "HAIR_COLOR", ...]
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // קשרים
   stories Story[]
 
-  @@map("story_templates")
   @@index([category])
   @@index([ageGroup])
   @@index([language])
+  @@map("story_templates")
 }
 
 // טבלת סיפורים שנוצרו
@@ -109,9 +109,10 @@ model Story {
   child         Child         @relation(fields: [childId], references: [id], onDelete: Cascade)
   storyTemplate StoryTemplate @relation(fields: [storyTemplateId], references: [id])
 
-  @@map("stories")
   @@index([userId])
   @@index([childId])
   @@index([generationStatus])
   @@index([createdAt])
+  @@index([storyTemplateId]) // האינדקס החסר שמצאנו!
+  @@map("stories")
 }

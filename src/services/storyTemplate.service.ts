@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma';
 import { StoryTemplate } from '@prisma/client';
+import { CacheService } from './cache.service';
 
 /**
  * Story Template Service - שירות לניהול תבניות סיפורים
@@ -106,14 +107,21 @@ export class StoryTemplateService {
      * קבלת תבנית לפי ID
      */
     static async getTemplateById(templateId: number): Promise<StoryTemplate | null> {
-        const template = await prisma.storyTemplate.findFirst({
-            where: {
-                id: templateId,
-                isActive: true
-            }
-        });
+        const cacheKey = `story-template:${templateId}`;
 
-        return template;
+        return CacheService.getOrSet(
+            cacheKey,
+            async () => {
+                const template = await prisma.storyTemplate.findFirst({
+                    where: {
+                        id: templateId,
+                        isActive: true
+                    }
+                });
+                return template;
+            },
+            3600 // שעה
+        );
     }
 
     /**
@@ -217,6 +225,9 @@ export class StoryTemplateService {
             where: { id: templateId },
             data: dataToUpdate
         });
+
+        // מחיקת cache
+        await CacheService.invalidateStoryTemplates();
 
         return updatedTemplate;
     }
