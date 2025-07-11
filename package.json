@@ -32,7 +32,9 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.11.1",
+    "@types/axios": "^0.14.4",
     "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.56.3",
     "cors": "^2.8.5",

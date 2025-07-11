@@ -8,6 +8,7 @@ import { connectRedis, disconnectRedis } from './config/redis';
 import routes from './routes';
 import { initializeQueues, closeQueues } from './queues';
 import { startStoryWorker, stopStoryWorker } from './queues/workers/storyWorker';
+import { generalLimiter } from './config/rateLimiter';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,9 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet()); // אבטחה בסיסית
 app.use(cors()); // מאפשר בקשות מדומיינים שונים
 app.use(morgan('combined')); // לוגים
+
+// Rate Limiting כללי
+app.use('/api', generalLimiter);
 
 // הגדרות קידוד UTF-8 לתמיכה בעברית
 app.use(express.json({
