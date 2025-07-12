@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Practice\\kids-story-app\\backend\\logs\\.71e5bfd0dddfb58e67e1bf6f2ec5ce724d016acc-audit.json",
+    "files": [
+        {
+            "date": 1752251962836,
+            "name": "C:\\Practice\\kids-story-app\\backend\\logs\\error-2025-07-11.log",
+            "hash": "252c088cc412bb3228ec543039a61e07463516aa9790e27d28a6c915ac4bb56e"
+        }
+    ],
+    "hashType": "sha256"
+}

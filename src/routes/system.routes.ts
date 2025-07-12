@@ -3,6 +3,8 @@ import { authenticateToken } from '../middleware/auth.middleware';
 import { getUserRateLimitStatus } from '../config/rateLimiter';
 import { CacheService } from '../services/cache.service';
 import { getQueueStats } from '../queues/storyQueue';
+import { MonitoringService } from '../services/monitoring.service';
+import { loggers } from '../config/logger';
 
 /**
  * System Routes - נתיבי מערכת
@@ -28,7 +30,7 @@ router.get('/rate-limit', authenticateToken, async (req: Request, res: Response)
         }
 
         const status = await getUserRateLimitStatus(userId);
-
+        
         res.status(200).json({
             success: true,
             data: {
@@ -135,6 +137,56 @@ router.get('/health', async (req: Request, res: Response) => {
                 status: 'unhealthy',
                 error: (error as Error).message
             }
+        });
+    }
+});
+
+/**
+ * מטריקות מערכת מפורטות
+ * GET /system/metrics
+ */
+router.get('/metrics', authenticateToken, async (req: Request, res: Response) => {
+    try {
+        const [systemMetrics, appStats] = await Promise.all([
+            MonitoringService.getSystemMetrics(),
+            MonitoringService.getApplicationStats(),
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                system: systemMetrics,
+                application: appStats,
+            }
+        });
+
+    } catch (error) {
+        loggers.error('Metrics error', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get metrics'
+        });
+    }
+});
+
+/**
+ * Health check מפורט
+ * GET /system/health/detailed
+ */
+router.get('/health/detailed', authenticateToken, async (req: Request, res: Response) => {
+    try {
+        const health = await MonitoringService.getDetailedHealthCheck();
+        
+        res.status(health.status === 'healthy' ? 200 : 503).json({
+            success: health.status === 'healthy',
+            data: health
+        });
+
+    } catch (error) {
+        loggers.error('Detailed health check error', error);
+        res.status(503).json({
+            success: false,
+            message: 'Health check failed'
         });
     }
 });

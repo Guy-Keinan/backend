@@ -9,6 +9,9 @@ import routes from './routes';
 import { initializeQueues, closeQueues } from './queues';
 import { startStoryWorker, stopStoryWorker } from './queues/workers/storyWorker';
 import { generalLimiter } from './config/rateLimiter';
+import { bullBoardRouter } from './config/bullBoard';
+import { loggers, morganStream } from './config/logger';
+import { rateLimitInfo } from './config/rateLimiter';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,7 +19,11 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet()); // אבטחה בסיסית
 app.use(cors()); // מאפשר בקשות מדומיינים שונים
-app.use(morgan('combined')); // לוגים
+app.use(morgan('combined', { stream: morganStream }));
+
+app.use('/admin/queues', bullBoardRouter);
+app.use(rateLimitInfo);
+
 
 // Rate Limiting כללי
 app.use('/api', generalLimiter);
@@ -89,11 +96,13 @@ const startServer = async () => {
     startStoryWorker();
 
     app.listen(PORT, () => {
+      loggers.info(`🚀 Server is running on port ${PORT}`);
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📖 Kids Story App API started at http://localhost:${PORT}`);
       console.log(`🐂 BullMQ workers are running`);
     });
   } catch (error) {
+    loggers.error('Failed to start server', error);
     console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
